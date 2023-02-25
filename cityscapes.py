@@ -24,7 +24,8 @@ args = {
     'num_classes': 20, # 19 effective classes, index=19 is ignored
     'n_iters': 60000,
     'lr': 0.007, # This is scaled by number of GPUs
-    'n_cpus': 16
+    'n_cpus': 16,
+    'epochs': 20
 }
 
 '''parser = argparse.ArgumentParser(description='Placeholder')
