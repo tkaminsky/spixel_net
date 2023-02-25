@@ -1,9 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[4]:
-
-
 import comet_ml
 
 import os
@@ -20,13 +14,9 @@ from torchmetrics import JaccardIndex
 from torchvision import datasets
 import argparse
 
-
-# In[11]:
-
-
 args = {
     'exp_name': 'starter',
-    'data_root': '.',
+    'data_root': '../../../vcg_natural/cityscape',
     'model': 'tu-xception65',
     'batch_size': 4, # For DP, this is the total batch size; for ddp this is for each GPU core
     'parallel_mode': 'dp',
@@ -34,14 +24,8 @@ args = {
     'num_classes': 20, # 19 effective classes, index=19 is ignored
     'n_iters': 60000,
     'lr': 0.007, # This is scaled by number of GPUs
-    'n_cpus': 16,
+    'n_cpus': 16
 }
-
-os.system('jupyter nbconvert --to script cityscapes.ipynb')
-
-
-# In[8]:
-
 
 '''parser = argparse.ArgumentParser(description='Placeholder')
 
@@ -58,10 +42,6 @@ parser.add_argument("--n_cpus", type=int, default=16)
 
 args = vars(parser.parse_args())'''
 
-
-# In[9]:
-
-
 args['lr'] *= torch.cuda.device_count()
 # For data-parallel (jupyter notebook), args['batch_size'] denotes actual batch size split across different 
 #  devices. For ddp (script mode), args['batch_size'] is the batch size for a single GPU.
@@ -72,24 +52,23 @@ if not os.path.exists('logs'):
     os.mkdir('logs')
     
 # Change comet api credentials for different users
+
 comet_logger = pl.loggers.CometLogger(
-    api_key="WEsUNgqzGyrdW7pKSiVqY3t9T",
+    api_key=os.environ.get("COMET_API_KEY"),
+    workspace=os.environ.get("COMET_WORKSPACE"),  # Optional
     save_dir="logs",  # Optional
-    project_name="active-learning",
-    log_code=True
+    project_name="active_learning",  # Optional
+    experiment_name=args['exp_name']  # Optional
 )
+
 comet_logger.log_hyperparams(args)
     
-args['log_dir'] = os.path.join('nlyu', 'logs', args['exp_name'])
+args['log_dir'] = os.path.join('tkaminsky', 'logs', args['exp_name'])
 model = smp.DeepLabV3Plus(encoder_name=args['model'], encoder_weights='imagenet', \
                           in_channels=3, classes=args['num_classes'], activation=None,\
                           decoder_atrous_rates=(6, 12, 18))
 
 print(args)
-
-
-# In[10]:
-
 
 img_transform = transforms.Compose([
     transforms.ToTensor(),
@@ -151,9 +130,6 @@ if args['parallel_mode'] == 'ddp':
 print(len(trainset), len(valset), len(testset), epoch_steps)
 
 
-# In[3]:
-
-
 from torchmetrics.functional import jaccard_index
 
 def jaccard_fn(preds, labels):
@@ -206,9 +182,6 @@ class SegmentationModel(pl.LightningModule):
     def test_dataloader(self):
         return torch.utils.data.DataLoader(self.testset, batch_size=self.args['batch_size'], \
                                            num_workers=args['n_cpus'])
-
-
-# In[ ]:
 
 
 model = SegmentationModel()
